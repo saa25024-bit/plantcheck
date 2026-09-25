@@ -4,26 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PlantCheck - 作物の生育記録・管理</title>
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        emerald: {
-                            50: '#ecfdf5',
-                            100: '#d1fae5',
-                            500: '#10b981',
-                            600: '#059669',
-                            700: '#047857',
-                            800: '#065f46',
-                        }
-                    }
-                }
-            }
-        }
-    </script>
+    <!-- Tailwind CSS (Console警告の発生しないCSS版CDNを採用) -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
     <!-- FontAwesome icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Google Fonts -->
@@ -80,6 +62,34 @@
 
     <!-- メインコンテンツ -->
     <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+
+        <!-- Firebase セキュリティルール警告モーダル (権限エラー時に自動表示) -->
+        <div id="firestoreRuleAlert" class="hidden mb-6 bg-amber-50 border-2 border-amber-300 rounded-2xl p-5 text-amber-900 shadow-sm">
+            <div class="flex items-start space-x-3">
+                <i class="fa-solid fa-triangle-exclamation text-amber-600 text-xl mt-0.5"></i>
+                <div class="flex-1">
+                    <h3 class="font-bold text-base mb-1">Firebase Firestoreのセキュリティルール設定が必要です</h3>
+                    <p class="text-xs text-amber-800 leading-relaxed mb-3">
+                        データアクセスの権限不足エラー (`Missing or insufficient permissions`) が発生しました。<br>
+                        Firebase Console で Firestore Database のルールを以下のように変更してください：
+                    </p>
+                    <div class="bg-slate-900 text-amber-300 text-xs font-mono p-3 rounded-xl overflow-x-auto relative mb-3">
+                        <pre>rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}</pre>
+                    </div>
+                    <a href="https://console.firebase.google.com/" target="_blank" rel="noopener noreferrer" class="inline-flex items-center space-x-1 text-xs font-bold bg-amber-600 text-white px-3 py-1.5 rounded-lg hover:bg-amber-700 transition">
+                        <span>Firebase Console を開く</span>
+                        <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
 
         <!-- 未ログインビュー -->
         <section id="guestView" class="hidden py-12 sm:py-20 text-center">
@@ -325,7 +335,7 @@
             </div>
             <form id="logForm" class="p-6 space-y-4">
                 <div>
-                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">記録日 <span class="text-red-500">*</span></label>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">日付 <span class="text-red-500">*</span></label>
                     <input type="date" id="logDateInput" required class="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50">
                 </div>
 
@@ -344,17 +354,22 @@
 
                 <div class="grid grid-cols-2 gap-4">
                     <div>
-                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">草丈 / 高さ (cm)</label>
-                        <input type="number" step="0.1" id="logHeightInput" placeholder="例: 15.5" class="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50">
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">葉枚数 (枚)</label>
+                        <input type="number" step="1" min="0" id="logLeavesInput" placeholder="例: 8" class="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50">
                     </div>
                     <div>
-                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">状態評価</label>
-                        <select id="logStatusInput" class="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50">
-                            <option value="順調">🟢 順調</option>
-                            <option value="普通">🟡 普通</option>
-                            <option value="要注意">🔴 要注意</option>
-                        </select>
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">草丈 (cm)</label>
+                        <input type="number" step="0.1" id="logHeightInput" placeholder="例: 15.5" class="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50">
                     </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">状態評価</label>
+                    <select id="logStatusInput" class="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50">
+                        <option value="順調">🟢 順調</option>
+                        <option value="普通">🟡 普通</option>
+                        <option value="要注意">🔴 要注意</option>
+                    </select>
                 </div>
 
                 <div>
@@ -363,8 +378,8 @@
                 </div>
 
                 <div>
-                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">観察コメント・日記 <span class="text-red-500">*</span></label>
-                    <textarea id="logCommentInput" required rows="3" placeholder="本葉が4枚出た。元気に育っている。" class="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50"></textarea>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">メモ <span class="text-red-500">*</span></label>
+                    <textarea id="logCommentInput" required rows="3" placeholder="本葉が増えて発育が順調。" class="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50"></textarea>
                 </div>
 
                 <div class="pt-3 flex items-center justify-end space-x-3 border-t border-slate-100">
@@ -388,6 +403,8 @@
             getAuth, 
             GoogleAuthProvider, 
             signInWithPopup, 
+            signInWithRedirect,
+            getRedirectResult,
             signOut, 
             onAuthStateChanged 
         } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
@@ -402,7 +419,7 @@
             serverTimestamp 
         } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // Firebase Configuration (指定された設定)
+        // Firebase Configuration
         const firebaseConfig = {
             apiKey: "AIzaSyDKa6Bne62v2yEPQR4KP-izdtdzU05tQpU",
             authDomain: "plantcheck-36541.firebaseapp.com",
@@ -429,58 +446,10 @@
         // デフォルトプレースホルダー画像
         const DEFAULT_CROP_IMAGE = "https://images.unsplash.com/photo-1530836369250-ef72a3f5cda8?auto=format&fit=crop&w=600&q=80";
 
-        // --- DOM Elements ---
-        const authLoading = document.getElementById('authLoading');
-        const userInfo = document.getElementById('userInfo');
-        const userAvatar = document.getElementById('userAvatar');
-        const userName = document.getElementById('userName');
-        const userEmail = document.getElementById('userEmail');
-        const loginBtn = document.getElementById('loginBtn');
-        const logoutBtn = document.getElementById('logoutBtn');
-        const heroLoginBtn = document.getElementById('heroLoginBtn');
-
-        const guestView = document.getElementById('guestView');
-        const appView = document.getElementById('appView');
-
-        const cropsGrid = document.getElementById('cropsGrid');
-        const emptyCropsView = document.getElementById('emptyCropsView');
-        const cropCountBadge = document.getElementById('cropCountBadge');
-        const searchInput = document.getElementById('searchInput');
-        const categoryFilter = document.getElementById('categoryFilter');
-
-        // モーダル関連
-        const cropModal = document.getElementById('cropModal');
-        const cropForm = document.getElementById('cropForm');
-        const cropModalTitle = document.getElementById('cropModalTitle');
-        const cropIdInput = document.getElementById('cropIdInput');
-        const cropNameInput = document.getElementById('cropNameInput');
-        const cropVarietyInput = document.getElementById('cropVarietyInput');
-        const cropCategoryInput = document.getElementById('cropCategoryInput');
-        const cropStartDateInput = document.getElementById('cropStartDateInput');
-        const cropHarvestDateInput = document.getElementById('cropHarvestDateInput');
-        const cropImageUrlInput = document.getElementById('cropImageUrlInput');
-        const cropNotesInput = document.getElementById('cropNotesInput');
-
-        const detailModal = document.getElementById('detailModal');
-        const detailHeader = document.getElementById('detailHeader');
-        const detailCategory = document.getElementById('detailCategory');
-        const detailName = document.getElementById('detailName');
-        const detailVariety = document.getElementById('detailVariety');
-        const detailStartDate = document.getElementById('detailStartDate');
-        const detailDaysCount = document.getElementById('detailDaysCount');
-        const detailNotesContainer = document.getElementById('detailNotesContainer');
-        const detailNotes = document.getElementById('detailNotes');
-        const logsTimeline = document.getElementById('logsTimeline');
-        const emptyLogsView = document.getElementById('emptyLogsView');
-
-        const logModal = document.getElementById('logModal');
-        const logForm = document.getElementById('logForm');
-        const logDateInput = document.getElementById('logDateInput');
-        const logTypeInput = document.getElementById('logTypeInput');
-        const logHeightInput = document.getElementById('logHeightInput');
-        const logStatusInput = document.getElementById('logStatusInput');
-        const logImageUrlInput = document.getElementById('logImageUrlInput');
-        const logCommentInput = document.getElementById('logCommentInput');
+        // リダイレクト結果の受け取り処理
+        getRedirectResult(auth).catch((error) => {
+            console.error("Redirect auth error:", error);
+        });
 
         // --- Authentication ---
         onAuthStateChanged(auth, (user) => {
@@ -510,14 +479,22 @@
             }
         });
 
-        // Google ログイン
+        // Google ログイン（ポップアップ失敗時にリダイレクトへフォールバック）
         const handleLogin = async () => {
             try {
                 await signInWithPopup(auth, googleProvider);
                 showToast("ログインしました");
             } catch (error) {
-                console.error("Login error:", error);
-                showToast("ログインに失敗しました: " + error.message, true);
+                console.warn("Popup error, attempting redirect login:", error);
+                if (error.code === 'auth/popup-blocked' || error.code === 'auth/popup-closed-by-user' || error.message.includes('COOP')) {
+                    try {
+                        await signInWithRedirect(auth, googleProvider);
+                    } catch (redirectErr) {
+                        showToast("ログインに失敗しました: " + redirectErr.message, true);
+                    }
+                } else {
+                    showToast("ログインエラー: " + error.message, true);
+                }
             }
         };
 
@@ -535,7 +512,7 @@
         heroLoginBtn.addEventListener('click', handleLogin);
         logoutBtn.addEventListener('click', handleLogout);
 
-        // --- Firestore: Crops Collection ---
+        // --- Firestore References ---
         const getCropsRef = () => {
             const appId = typeof __app_id !== 'undefined' ? __app_id : 'plantcheck';
             return collection(db, 'artifacts', appId, 'users', currentUser.uid, 'crops');
@@ -552,18 +529,20 @@
 
             const cropsRef = getCropsRef();
             unsubscribeCrops = onSnapshot(cropsRef, (snapshot) => {
+                document.getElementById('firestoreRuleAlert').classList.add('hidden');
                 cropsData = [];
                 snapshot.forEach((docSnap) => {
                     cropsData.push({ id: docSnap.id, ...docSnap.data() });
                 });
 
-                // クライアント側で作成日順にソート (RULE 2 準拠)
                 cropsData.sort((a, b) => (b.createdAt?.toMillis?.() || 0) - (a.createdAt?.toMillis?.() || 0));
-
                 renderCrops();
             }, (error) => {
                 console.error("Crops listener error:", error);
-                showToast("データの読み込みエラーが発生しました", true);
+                if (error.code === 'permission-denied' || error.message.includes('permissions')) {
+                    document.getElementById('firestoreRuleAlert').classList.remove('hidden');
+                }
+                showToast("データのアクセス権限エラーが発生しました", true);
             });
         }
 
@@ -685,12 +664,14 @@
                 }
                 closeCropModal();
                 if (activeCropId && id === activeCropId) {
-                    // 詳細モーダルが開いていれば情報更新
                     openDetailModal(activeCropId);
                 }
             } catch (error) {
                 console.error("Save crop error:", error);
-                showToast("保存に失敗しました", true);
+                if (error.code === 'permission-denied' || error.message.includes('permissions')) {
+                    document.getElementById('firestoreRuleAlert').classList.remove('hidden');
+                }
+                showToast("保存権限がありません Firebaseルールをご確認ください", true);
             }
         });
 
@@ -772,7 +753,10 @@
                             </button>
                         </div>
 
-                        ${log.height ? `<div class="text-xs text-emerald-600 font-bold mb-1">📏 草丈: ${log.height} cm</div>` : ''}
+                        <div class="flex items-center space-x-4 text-xs font-bold text-emerald-600 mb-1">
+                            ${log.leaves !== null && log.leaves !== undefined ? `<span>🍃 葉枚数: ${log.leaves} 枚</span>` : ''}
+                            ${log.height ? `<span>📏 草丈: ${log.height} cm</span>` : ''}
+                        </div>
                         
                         <p class="text-sm text-slate-700 whitespace-pre-wrap">${escapeHtml(log.comment)}</p>
 
@@ -811,6 +795,7 @@
             const logData = {
                 date: logDateInput.value,
                 type: logTypeInput.value,
+                leaves: logLeavesInput.value !== "" ? parseInt(logLeavesInput.value, 10) : null,
                 height: logHeightInput.value ? parseFloat(logHeightInput.value) : null,
                 status: logStatusInput.value,
                 imageUrl: logImageUrlInput.value.trim(),
